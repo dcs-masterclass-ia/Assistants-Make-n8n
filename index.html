@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formation Avancée — Assistants IA sur Make & n8n</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #0c1222;
+            --ink-soft: #334155;
+            --ink-muted: #64748b;
+            --surface: #f8fafc;
+            --blue-primary: #8b5cf6;
+            --radius-xl: 28px;
+            --slide-transition: 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+            overflow: hidden;
+            background-color: var(--surface);
+            color: var(--ink);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .blob { position: fixed; filter: blur(100px); z-index: -1; opacity: 0.45; animation: blobFloat 18s infinite ease-in-out; pointer-events: none; }
+        .blob-1 { top: -10%; left: -10%; width: 550px; height: 550px; background: radial-gradient(circle, #ddd6fe 0%, #f5f3ff 100%); animation-delay: 0s; }
+        .blob-2 { bottom: -10%; right: -10%; width: 650px; height: 650px; background: radial-gradient(circle, #e0e7ff 0%, #eef2ff 100%); animation-delay: 6s; }
+        .blob-3 { top: 40%; left: 30%; width: 450px; height: 450px; background: radial-gradient(circle, #f3e8ff 0%, #ffffff 100%); animation-delay: 3s; opacity: 0.5; }
+        
+        @keyframes blobFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(25px, 40px) scale(1.03); }
+            66% { transform: translate(-15px, 20px) scale(0.97); }
+        }
+
+        .bg-grid { position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0.5; background-size: 60px 60px; background-image: linear-gradient(to right, rgba(139, 92, 246, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(139, 92, 246, 0.05) 1px, transparent 1px); }
+
+        .slide {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; opacity: 0; pointer-events: none;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2rem; z-index: 1;
+            transition: opacity var(--slide-transition), transform var(--slide-transition), filter var(--slide-transition);
+            transform: scale(0.98) translateY(10px); filter: blur(4px);
+        }
+        .slide.active { opacity: 1; pointer-events: auto; transform: scale(1) translateY(0); filter: blur(0px); z-index: 2; }
+
+        .anim { opacity: 0; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+        .active .anim { opacity: 1; transform: translateY(0); }
+        .d1 { transition-delay: 100ms; } .d2 { transition-delay: 200ms; } .d3 { transition-delay: 300ms; }
+        .d4 { transition-delay: 400ms; } .d5 { transition-delay: 500ms; } .d6 { transition-delay: 600ms; }
+
+        .glass { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: none; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04), 0 2px 10px rgba(0, 0, 0, 0.02); border-radius: var(--radius-xl); }
+        .glass-strong { background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: none; box-shadow: 0 15px 40px rgba(0, 0, 0, 0.06), 0 5px 15px rgba(0, 0, 0, 0.03); border-radius: var(--radius-xl); }
+        
+        .logo-box { background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(12px); border: none; box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.06); border-radius: 20px; padding: 20px 36px; }
+        .nav-btn { padding: 14px; border-radius: 50%; border: none; cursor: pointer; transition: all 0.2s ease; outline: none; display: flex; align-items: center; justify-content: center; }
+        .nav-btn:active { transform: scale(0.92); }
+        .nav-prev { background: white; color: var(--ink-muted); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .nav-next { background: var(--ink); color: white; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); }
+        .progress-track { height: 3px; background: #e2e8f0; }
+        .progress-fill { height: 100%; background: var(--blue-primary); transition: width 0.3s ease; }
+        .slide-counter { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-muted); letter-spacing: 0.08em; }
+        .badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 999px; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+        
+        .wf-node { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; z-index: 10; background: white; flex-shrink: 0; }
+        .wf-line { height: 4px; background: #e2e8f0; flex-grow: 1; position: relative; z-index: 0; min-width: 20px; }
+        .wf-active-line { position: absolute; top: 0; left: 0; height: 100%; background: var(--blue-primary); width: 0%; transition: width 1s linear; }
+        
+        .content-scroll { max-height: 80vh; overflow-y: auto; padding-right: 1rem; scrollbar-width: thin; }
+        .content-scroll::-webkit-scrollbar { width: 6px; }
+        .content-scroll::-webkit-scrollbar-track { background: transparent; }
+        .content-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+        
+        /* Quiz specific styles */
+        .quiz-option { cursor: pointer; display: flex; items-center; gap: 0.75rem; padding: 0.5rem; border-radius: 0.5rem; transition: background 0.2s; }
+        .quiz-option:hover { background-color: rgba(241, 245, 249, 0.8); }
+        .quiz-radio { width: 1.25rem; height: 1.25rem; accent-color: var(--blue-primary); cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div><div class="bg-grid"></div>
+
+    <nav class="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+        <span class="slide-counter" id="slideCounter">01 / 26</span>
+        <button onclick="prevSlide()" class="nav-btn nav-prev"><i data-lucide="arrow-left" width="20" height="20"></i></button>
+        <button onclick="nextSlide()" class="nav-btn nav-next"><i data-lucide="arrow-right" width="20" height="20"></i></button>
+    </nav>
+    <div class="fixed bottom-0 left-0 w-full progress-track z-50"><div id="progress" class="progress-fill" style="width:0%"></div></div>
+
+    <section class="slide active">
+        <div class="anim float mb-8">
+            <div class="logo-box flex items-center justify-center w-24 h-24 mx-auto">
+                <i data-lucide="graduation-cap" class="text-purple-600" width="40" height="40"></i>
+            </div>
+        </div>
+        <div class="max-w-4xl text-center">
+            <div class="anim d1 badge bg-purple-50 text-purple-700 mb-6">
+                <span class="w-2 h-2 bg-purple-600 rounded-full animate-pulse"></span>
+                FORMATION TECHNIQUE COMPLÈTE
+            </div>
+            <h1 class="anim d2 text-6xl md:text-7xl font-black tracking-tight leading-none mb-6 text-slate-900">
+                Architecte en <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-500">Automatisation IA</span>
+            </h1>
+            <p class="anim d3 text-xl md:text-2xl text-slate-500 font-medium max-w-2xl mx-auto leading-relaxed mt-6">
+                De la théorie aux déploiements complexes. Maîtrisez Make, n8n et l'API OpenAI pour construire vos propres employés numériques.
+            </p>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full">
+            <h2 class="anim d1 text-4xl font-bold mb-10 text-center">Le Programme</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="anim d2 glass p-6 border-t-4 border-slate-300">
+                    <div class="text-slate-400 font-black text-2xl mb-2">01</div>
+                    <h3 class="font-bold text-lg mb-2 text-slate-800">Les Fondations</h3>
+                    <p class="text-sm text-slate-600">Comprendre le langage du web : API, HTTP, JSON, et Webhooks.</p>
+                </div>
+                <div class="anim d3 glass p-6 border-t-4 border-purple-400">
+                    <div class="text-purple-400 font-black text-2xl mb-2">02</div>
+                    <h3 class="font-bold text-lg mb-2 text-slate-800">L'Écosystème</h3>
+                    <p class="text-sm text-slate-600">Make vs n8n. Architecture des nœuds, Triggers et Actions.</p>
+                </div>
+                <div class="anim d4 glass p-6 border-t-4 border-indigo-400">
+                    <div class="text-indigo-400 font-black text-2xl mb-2">03</div>
+                    <h3 class="font-bold text-lg mb-2 text-slate-800">Deep Dive : Make</h3>
+                    <p class="text-sm text-slate-600">Mappage, Itérateurs, Agrégateurs et Error Handlers.</p>
+                </div>
+                <div class="anim d5 glass p-6 border-t-4 border-emerald-400">
+                    <div class="text-emerald-400 font-black text-2xl mb-2">04</div>
+                    <h3 class="font-bold text-lg mb-2 text-slate-800">Intégration OpenAI</h3>
+                    <p class="text-sm text-slate-600">Modèles, Tokens, System Prompting et Structured Outputs.</p>
+                </div>
+                <div class="anim d6 glass-strong p-6 border-t-4 border-amber-400 shadow-md transform scale-105">
+                    <div class="text-amber-500 font-black text-2xl mb-2">05</div>
+                    <h3 class="font-bold text-lg mb-2 text-slate-800">Ateliers Pratiques</h3>
+                    <p class="text-sm text-slate-600">Construction pas-à-pas de 3 workflows métier réels.</p>
+                </div>
+                <div class="anim d6 glass p-6 border-t-4 border-rose-400">
+                    <div class="text-rose-400 font-black text-2xl mb-2">06</div>
+                    <h3 class="font-bold text-lg mb-2 text-slate-800">Mise en Prod & Quiz</h3>
+                    <p class="text-sm text-slate-600">Debugging, FinOps, et validation de vos acquis.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-slate-200 text-slate-700 mb-4">Module 1 : Fondations</div>
+            <h2 class="anim d2 text-4xl font-bold mb-10 text-slate-900">C'est quoi une API ?</h2>
+            <div class="anim d3 glass-strong p-10 flex flex-col md:flex-row items-center gap-10 text-left shadow-lg">
+                <div class="flex-1 space-y-4">
+                    <p class="text-slate-600 font-medium leading-relaxed">
+                        L'API (Application Programming Interface) est le pont qui permet à deux logiciels de communiquer. C'est le "menu" des fonctionnalités qu'un logiciel expose aux autres.
+                    </p>
+                    <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                        <h4 class="font-bold text-indigo-800 mb-2 flex items-center gap-2"><i data-lucide="utensils" width="18"></i> L'analogie du Restaurant</h4>
+                        <ul class="text-sm text-indigo-900 space-y-2">
+                            <li><strong>Vous (Le Client) :</strong> Make.com (Votre workflow).</li>
+                            <li><strong>Le Serveur (L'API) :</strong> Prend la commande et l'amène en cuisine.</li>
+                            <li><strong>La Cuisine (Le Serveur distant) :</strong> Les serveurs d'OpenAI ou de Slack.</li>
+                            <li><strong>Le Plat :</strong> La réponse renvoyée (ex: le texte généré).</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="flex-1 flex flex-col gap-4 w-full">
+                    <div class="bg-slate-900 p-4 rounded-lg font-mono text-xs text-green-400 shadow-inner overflow-x-auto">
+                        <span class="text-slate-500">// La Requête (Ce qu'on demande)</span><br>
+                        POST https://api.openai.com/v1/chat/completions<br>
+                        Authorization: Bearer sk-votrecle...<br><br>
+                        { "model": "gpt-4", "messages": [...] }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-slate-200 text-slate-700 mb-4">Module 1 : Fondations</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8 text-slate-900">Le vocabulaire des API (HTTP Methods)</h2>
+            <p class="anim d3 text-slate-600 mb-8 max-w-2xl mx-auto">Quand Make parle à une API, il utilise un "verbe" pour indiquer son intention. C'est le standard mondial du web (CRUD).</p>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
+                <div class="anim d4 glass p-6 border-t-4 border-blue-500">
+                    <h3 class="font-bold text-xl text-blue-800 mb-2">GET</h3>
+                    <p class="text-xs text-slate-600 font-bold mb-2 uppercase">Lire / Récupérer</p>
+                    <p class="text-sm text-slate-500">"Donne-moi les infos du client #123".</p>
+                </div>
+                <div class="anim d5 glass-strong p-6 border-t-4 border-green-500 shadow-lg transform scale-105">
+                    <h3 class="font-bold text-xl text-green-800 mb-2">POST</h3>
+                    <p class="text-xs text-slate-600 font-bold mb-2 uppercase">Créer / Envoyer</p>
+                    <p class="text-sm text-slate-500">"Crée un nouveau client avec ces données". <br><br><em>(Toujours utilisé pour parler à l'IA)</em></p>
+                </div>
+                <div class="anim d6 glass p-6 border-t-4 border-amber-500">
+                    <h3 class="font-bold text-xl text-amber-800 mb-2">PUT / PATCH</h3>
+                    <p class="text-xs text-slate-600 font-bold mb-2 uppercase">Mettre à jour</p>
+                    <p class="text-sm text-slate-500">"Modifie l'adresse du client #123".</p>
+                </div>
+                <div class="anim d6 glass p-6 border-t-4 border-red-500">
+                    <h3 class="font-bold text-xl text-red-800 mb-2">DELETE</h3>
+                    <p class="text-xs text-slate-600 font-bold mb-2 uppercase">Supprimer</p>
+                    <p class="text-sm text-slate-500">"Supprime le client #123 de la base".</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-slate-200 text-slate-700 mb-4">Module 1 : Fondations</div>
+            <h2 class="anim d2 text-4xl font-bold mb-10 text-slate-900">JSON : Le Langage des Machines</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                <div class="anim d3 glass p-8">
+                    <h3 class="font-bold text-xl mb-4 text-slate-800">Texte Humain (Non structuré)</h3>
+                    <p class="text-sm text-slate-600 mb-4">Impossible à traiter automatiquement pour un logiciel. Où est le nom ? Où est le prix ?</p>
+                    <div class="bg-white p-4 rounded border border-slate-200 text-sm font-serif italic text-slate-600 shadow-inner">
+                        "Bonjour, je m'appelle Jean Dupont. Je voudrais annuler ma commande numéro 48299 qui m'a coûté 45 euros. Merci d'avance."
+                    </div>
+                </div>
+                <div class="anim d4 glass-strong p-8 border-l-4 border-blue-500 shadow-lg">
+                    <h3 class="font-bold text-xl mb-4 text-blue-800">Format JSON (Structuré)</h3>
+                    <p class="text-sm text-slate-600 mb-4">JavaScript Object Notation. Organisé en paires <strong>"Clé": "Valeur"</strong>. Make peut lire chaque champ séparément.</p>
+                    <div class="bg-slate-900 p-4 rounded-lg font-mono text-xs text-blue-300 shadow-inner">
+                        {<br>
+                        &nbsp;&nbsp;<span class="text-pink-400">"client_nom"</span>: <span class="text-green-300">"Jean Dupont"</span>,<br>
+                        &nbsp;&nbsp;<span class="text-pink-400">"action"</span>: <span class="text-green-300">"annulation"</span>,<br>
+                        &nbsp;&nbsp;<span class="text-pink-400">"commande_id"</span>: <span class="text-orange-300">48299</span>,<br>
+                        &nbsp;&nbsp;<span class="text-pink-400">"montant"</span>: <span class="text-orange-300">45</span><br>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full">
+            <div class="anim d1 badge bg-slate-200 text-slate-700 mb-4 mx-auto flex w-max">Module 1 : Fondations</div>
+            <h2 class="anim d2 text-center text-4xl font-bold mb-10">Webhooks vs Polling</h2>
+            <div class="anim d3 glass p-10">
+                <p class="text-center text-slate-600 mb-8 max-w-2xl mx-auto">Comment l'automatisation sait-elle qu'un événement s'est produit (ex: un nouvel email) ? Il y a deux méthodes fondamentales.</p>
+                <div class="flex flex-col md:flex-row gap-8">
+                    <div class="flex-1 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative">
+                        <div class="absolute -top-4 -left-4 w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center font-bold shadow-sm"><i data-lucide="clock" width="20"></i></div>
+                        <h3 class="font-bold text-lg mb-3 text-slate-800 ml-4">Polling (Vérification périodique)</h3>
+                        <p class="text-sm text-slate-600 mb-4">Make demande à l'application toutes les 15 minutes : "As-tu du nouveau ?". S'il n'y a rien, il a consommé de la ressource pour rien.</p>
+                        <div class="flex items-center text-xs text-slate-400 font-mono bg-slate-50 p-2 rounded">
+                            Make ➔ "Nouveau mail ?" ➔ Non<br>
+                            Make ➔ "Nouveau mail ?" ➔ Oui !
+                        </div>
+                    </div>
+                    <div class="flex-1 bg-purple-50 p-6 rounded-2xl border border-purple-100 shadow-md relative">
+                        <div class="absolute -top-4 -left-4 w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold shadow-lg"><i data-lucide="zap" width="20"></i></div>
+                        <h3 class="font-bold text-lg mb-3 text-purple-900 ml-4">Webhook (Temps réel)</h3>
+                        <p class="text-sm text-purple-700 mb-4">Make génère une URL unique (Boîte aux lettres). Dès qu'un mail arrive, l'outil externe <strong>pousse</strong> l'information vers cette URL. Instatané et économique.</p>
+                        <div class="flex items-center text-xs text-purple-600 font-mono bg-white/60 p-2 rounded">
+                            (Attente passive...)<br>
+                            Gmail ➔ POST Donnée ➔ Make déclenché !
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-purple-100 text-purple-700 mb-4">Module 2 : L'Écosystème</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8">Les Outils : Make vs n8n</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="anim d3 glass p-10">
+                    <div class="w-16 h-16 bg-purple-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 font-black text-xl">M</div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">Make.com</h3>
+                    <ul class="text-sm text-slate-600 space-y-3 text-left mb-6">
+                        <li class="flex items-start gap-2"><i data-lucide="check" class="text-green-500 w-4 mt-0.5"></i> Interface visuelle imbattable (bulles).</li>
+                        <li class="flex items-start gap-2"><i data-lucide="check" class="text-green-500 w-4 mt-0.5"></i> +1500 apps natives intégrées.</li>
+                        <li class="flex items-start gap-2"><i data-lucide="x" class="text-red-400 w-4 mt-0.5"></i> Logiciel propriétaire Cloud uniquement.</li>
+                    </ul>
+                    <div class="text-xs font-bold text-purple-600 uppercase bg-purple-50 py-2 rounded">Le standard du marché (No-Code)</div>
+                </div>
+                <div class="anim d4 glass-strong p-10 shadow-lg">
+                    <div class="w-16 h-16 bg-red-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 font-black text-xl">n8n</div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">n8n.io</h3>
+                    <ul class="text-sm text-slate-600 space-y-3 text-left mb-6">
+                        <li class="flex items-start gap-2"><i data-lucide="check" class="text-green-500 w-4 mt-0.5"></i> Auto-hébergement gratuit (Self-Hosting).</li>
+                        <li class="flex items-start gap-2"><i data-lucide="check" class="text-green-500 w-4 mt-0.5"></i> Nœud "Code" pour écrire du JS natif.</li>
+                        <li class="flex items-start gap-2"><i data-lucide="x" class="text-red-400 w-4 mt-0.5"></i> Moins d'intégrations pré-faites.</li>
+                    </ul>
+                    <div class="text-xs font-bold text-red-600 uppercase bg-red-50 py-2 rounded">Le choix des ingénieurs (Low-Code)</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-purple-100 text-purple-700 mb-4">Module 2 : L'Écosystème</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8 text-slate-900">Les 3 Familles de Nœuds (Make)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                <div class="anim d3 glass p-6 border-t-4 border-indigo-500">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i data-lucide="zap" class="text-indigo-600"></i>
+                        <h3 class="font-bold text-slate-800">1. Triggers (Déclencheurs)</h3>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4">C'est le point de départ OBLIGATOIRE du workflow. Il n'y en a qu'un par scénario.</p>
+                    <div class="bg-indigo-50 text-indigo-800 text-xs px-2 py-1 inline-block rounded font-bold">Watch Emails, Watch Rows...</div>
+                </div>
+                <div class="anim d4 glass p-6 border-t-4 border-blue-500">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i data-lucide="search" class="text-blue-600"></i>
+                        <h3 class="font-bold text-slate-800">2. Searches (Recherches)</h3>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4">Au milieu du flux, on va chercher une information existante pour enrichir la donnée.</p>
+                    <div class="bg-blue-50 text-blue-800 text-xs px-2 py-1 inline-block rounded font-bold">List Messages, Get a User...</div>
+                </div>
+                <div class="anim d5 glass-strong p-6 border-t-4 border-emerald-500 shadow-md transform scale-105">
+                    <div class="flex items-center gap-3 mb-4">
+                        <i data-lucide="play" class="text-emerald-600"></i>
+                        <h3 class="font-bold text-slate-800">3. Actions (Créations)</h3>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4">Le but final. On modifie, on crée ou on envoie quelque chose dans une application.</p>
+                    <div class="bg-emerald-50 text-emerald-800 text-xs px-2 py-1 inline-block rounded font-bold">Create a Record, Send Email...</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-red-50 text-red-700 mb-4">Module 2 : L'Écosystème</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8 text-slate-900">Zoom : La puissance de n8n</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                <div class="anim d3 glass p-8 flex flex-col justify-center">
+                    <i data-lucide="server" class="text-red-500 mb-4" width="36" height="36"></i>
+                    <h3 class="font-bold text-xl mb-3 text-slate-800">Self-Hosting & RGPD absolu</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">Déployez n8n sur votre propre serveur. La donnée ne quitte jamais votre infrastructure. Une architecture indispensable pour la santé, le juridique ou la finance.</p>
+                </div>
+                <div class="anim d4 glass-strong p-8 flex flex-col justify-center border-t-4 border-slate-900 shadow-lg">
+                    <i data-lucide="code-2" class="text-slate-900 mb-4" width="36" height="36"></i>
+                    <h3 class="font-bold text-xl mb-3 text-slate-800">Le puissant Node "Code"</h3>
+                    <p class="text-sm text-slate-600 mb-4">Besoin d'une logique mathématique complexe ou d'un nettoyage de tableau impossible à faire en No-Code ? Écrivez directement du JavaScript.</p>
+                    <div class="bg-slate-900 p-3 rounded-lg text-green-400 font-mono text-xs shadow-inner">
+                        return items.map(item => ({<br>
+                        &nbsp;&nbsp;json: { ht: item.json.ttc / 1.2 }<br>
+                        }));
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full">
+            <div class="anim d1 badge bg-indigo-100 text-indigo-700 mb-4 mx-auto flex w-max">Module 3 : Deep Dive Make</div>
+            <h2 class="anim d2 text-center text-4xl font-bold mb-10">Comprendre le Mappage (Variables)</h2>
+            <div class="anim d3 glass-strong p-10 shadow-xl border-t-4 border-indigo-500">
+                <p class="text-slate-600 mb-6 text-center max-w-3xl mx-auto">Dans Make, la donnée circule de gauche à droite. Chaque module "produit" des données que le module suivant peut consommer. C'est le <strong>Mapping</strong>.</p>
+                
+                <div class="bg-white rounded-xl border border-slate-200 p-6 relative overflow-hidden">
+                    <div class="flex items-center gap-8">
+                        <div class="w-1/3 border-r border-slate-100 pr-6">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded flex items-center justify-center"><i data-lucide="type" width="16"></i></div>
+                                <span class="font-bold text-slate-800">1. Typeform</span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="bg-slate-50 p-2 rounded text-xs font-mono text-slate-600 cursor-grab hover:bg-indigo-50 border border-slate-200"><span class="text-indigo-500 font-bold mr-2">1.</span>name: "Alice"</div>
+                                <div class="bg-slate-50 p-2 rounded text-xs font-mono text-slate-600 cursor-grab hover:bg-indigo-50 border border-slate-200"><span class="text-indigo-500 font-bold mr-2">1.</span>email: "alice@co.com"</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex-1 pl-2">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-8 h-8 bg-green-100 text-green-600 rounded flex items-center justify-center"><i data-lucide="mail" width="16"></i></div>
+                                <span class="font-bold text-slate-800">2. Gmail (Send Email)</span>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
+                                <div>
+                                    <div class="text-xs text-slate-400 font-bold mb-1 uppercase">To:</div>
+                                    <div class="bg-white border border-slate-300 rounded p-2 text-sm flex items-center">
+                                        <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs font-mono font-bold">{{1.email}}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-xs text-slate-400 font-bold mb-1 uppercase">Content:</div>
+                                    <div class="bg-white border border-slate-300 rounded p-2 text-sm h-16 text-slate-600">
+                                        Bonjour <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs font-mono font-bold">{{1.name}}</span>, merci pour...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-indigo-100 text-indigo-700 mb-4">Module 3 : Deep Dive Make</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8 text-slate-900">Les Types de Données</h2>
+            <p class="anim d3 text-slate-600 mb-8 max-w-3xl mx-auto">Make indique le type de chaque variable avec une petite icône. C'est vital pour ne pas envoyer du texte là où l'API attend un nombre !</p>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
+                <div class="anim d4 glass p-6">
+                    <div class="font-bold text-xl mb-2 text-slate-800 flex items-center gap-2"><span class="text-blue-500 text-2xl">Aa</span> String</div>
+                    <p class="text-xs text-slate-600 mb-2">Chaîne de texte.</p>
+                    <div class="bg-slate-100 px-2 py-1 rounded font-mono text-[10px] text-slate-500">"Bonjour"</div>
+                </div>
+                <div class="anim d4 glass p-6">
+                    <div class="font-bold text-xl mb-2 text-slate-800 flex items-center gap-2"><span class="text-green-500 text-2xl font-mono">12</span> Number</div>
+                    <p class="text-xs text-slate-600 mb-2">Un nombre pur.</p>
+                    <div class="bg-slate-100 px-2 py-1 rounded font-mono text-[10px] text-slate-500">42</div>
+                </div>
+                <div class="anim d5 glass p-6">
+                    <div class="font-bold text-xl mb-2 text-slate-800 flex items-center gap-2"><i data-lucide="toggle-left" class="text-amber-500"></i> Boolean</div>
+                    <p class="text-xs text-slate-600 mb-2">Vrai ou Faux.</p>
+                    <div class="bg-slate-100 px-2 py-1 rounded font-mono text-[10px] text-slate-500">true / false</div>
+                </div>
+                <div class="anim d6 glass-strong p-6 border-2 border-purple-400 shadow-md">
+                    <div class="font-bold text-xl mb-2 text-purple-800 flex items-center gap-2"><i data-lucide="list" class="text-purple-600"></i> Array</div>
+                    <p class="text-xs text-slate-600 mb-2">Une liste. <strong>Impossible à mapper directement dans un texte !</strong></p>
+                    <div class="bg-purple-50 px-2 py-1 rounded font-mono text-[10px] text-purple-600">["Pomme", "Poire"]</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full">
+            <div class="anim d1 badge bg-indigo-100 text-indigo-700 mb-4 mx-auto flex w-max">Module 3 : Deep Dive Make</div>
+            <h2 class="anim d2 text-center text-4xl font-bold mb-10">Filtres et Routeurs</h2>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="anim d3 glass p-8">
+                    <div class="flex items-center justify-center gap-4 mb-6">
+                        <div class="wf-node border-2 border-slate-200"><i data-lucide="mail"></i></div>
+                        <div class="relative w-16 h-1 bg-slate-200 flex items-center justify-center">
+                            <div class="w-6 h-6 bg-cyan-100 rounded-full flex items-center justify-center absolute shadow-sm border border-cyan-300"><i data-lucide="filter" width="12" class="text-cyan-600"></i></div>
+                        </div>
+                        <div class="wf-node border-2 border-slate-200"><i data-lucide="slack"></i></div>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-slate-800 text-center">Le Filtre (La Douane)</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed text-center">Il se place sur la ligne. Il empêche la donnée de passer si une condition n'est pas remplie.<br><br><span class="bg-cyan-50 text-cyan-800 font-bold px-2 py-1 rounded">Ex: Continuer SEULEMENT SI "Urgence" = "Haute"</span></p>
+                </div>
+                
+                <div class="anim d4 glass-strong p-8">
+                    <div class="flex items-center justify-center gap-2 mb-6">
+                        <div class="wf-node border-2 border-slate-200"><i data-lucide="brain"></i></div>
+                        <div class="w-8 h-1 bg-slate-200"></div>
+                        <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center border-2 border-indigo-400"><i data-lucide="git-branch" class="text-indigo-600"></i></div>
+                        <div class="flex flex-col gap-2 ml-2">
+                            <div class="flex items-center gap-2"><div class="w-4 h-1 bg-slate-200"></div><div class="wf-node w-10 h-10 border-2 border-slate-200"><i data-lucide="check" width="16"></i></div></div>
+                            <div class="flex items-center gap-2"><div class="w-4 h-1 bg-slate-200"></div><div class="wf-node w-10 h-10 border-2 border-slate-200"><i data-lucide="x" width="16"></i></div></div>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-slate-800 text-center">Le Routeur (L'Aiguillage)</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed text-center">Divise le workflow en plusieurs chemins parallèles. Indispensable pour créer de la logique conditionnelle complète (If/Else).</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-rose-100 text-rose-700 mb-4">Module 3 : Deep Dive Make (Niveau Pro)</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8">Itérateurs et Agrégateurs</h2>
+            <p class="anim d3 text-slate-600 mb-8 max-w-3xl mx-auto">Comment gérer des listes de données (Arrays) ? Un module qui attend du texte ne peut pas lire une liste entière d'un coup.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                <div class="anim d4 glass p-8 border-l-4 border-rose-400">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 bg-rose-100 rounded flex items-center justify-center"><i data-lucide="repeat" class="text-rose-600"></i></div>
+                        <h3 class="font-bold text-xl text-slate-800">L'Itérateur (Éclater)</h3>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4">Prend un tableau (Array) et crée <strong>une exécution séparée</strong> pour chaque élément à l'intérieur.</p>
+                    <div class="bg-slate-50 p-3 rounded font-mono text-xs text-slate-500 border border-slate-200">
+                        Entrée : [Mail A, Mail B]<br>
+                        ➔ Bundle 1 : Mail A<br>
+                        ➔ Bundle 2 : Mail B
+                    </div>
+                </div>
+                
+                <div class="anim d5 glass-strong p-8 border-l-4 border-emerald-500">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 bg-emerald-100 rounded flex items-center justify-center"><i data-lucide="combine" class="text-emerald-600"></i></div>
+                        <h3 class="font-bold text-xl text-slate-800">L'Agrégateur (Regrouper)</h3>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4">L'inverse exact. Attend que toutes les exécutions individuelles soient passées pour les regrouper dans un seul nouveau tableau (Array).</p>
+                    <div class="bg-slate-50 p-3 rounded font-mono text-xs text-slate-500 border border-slate-200">
+                        Entrée : Ligne 1, Ligne 2<br>
+                        ➔ Sortie : [Ligne 1, Ligne 2]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full">
+            <div class="anim d1 badge bg-amber-100 text-amber-700 mb-4 mx-auto flex w-max">Module 3 : Deep Dive Make</div>
+            <h2 class="anim d2 text-center text-4xl font-bold mb-10">La Gestion des Erreurs (Directives)</h2>
+            <div class="anim d3 glass-strong p-8 shadow-xl">
+                <p class="text-slate-600 mb-6 text-center">Que se passe-t-il si l'API OpenAI est en panne ? Par défaut, Make <strong>désactive le scénario entier</strong> après 3 erreurs. Pour éviter ça, on accroche une "Error Route" sous un module.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 text-center shadow-sm">
+                        <i data-lucide="play-circle" class="mx-auto text-blue-500 mb-3" width="28"></i>
+                        <h4 class="font-bold text-slate-800 mb-2">Resume</h4>
+                        <p class="text-xs text-slate-600">Remplace la donnée par une valeur "Fallback" (ex: "Erreur IA") et <strong>continue</strong> le workflow.</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 text-center shadow-sm">
+                        <i data-lucide="slash" class="mx-auto text-slate-400 mb-3" width="28"></i>
+                        <h4 class="font-bold text-slate-800 mb-2">Ignore</h4>
+                        <p class="text-xs text-slate-600"><strong>Arrête silencieusement</strong> l'exécution de cette branche, sans mettre le scénario entier en pause.</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-amber-300 bg-amber-50 text-center shadow-md transform scale-105">
+                        <i data-lucide="refresh-cw" class="mx-auto text-amber-600 mb-3" width="28"></i>
+                        <h4 class="font-bold text-amber-800 mb-2">Break</h4>
+                        <p class="text-xs text-amber-700">Stocke la donnée et <strong>réessaie automatiquement</strong> (ex: dans 15 minutes, 3 fois max) avant d'échouer.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-emerald-100 text-emerald-700 mb-4">Module 4 : Intégration OpenAI</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8">Obtenir et Sécuriser sa Clé API</h2>
+            
+            <div class="anim d3 glass p-8 text-left max-w-3xl mx-auto space-y-6">
+                <div class="flex items-start gap-4">
+                    <div class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-sm shrink-0 mt-1">1</div>
+                    <div>
+                        <h4 class="font-bold text-slate-800">Créer un compte "Platform"</h4>
+                        <p class="text-sm text-slate-600">Allez sur <code>platform.openai.com</code>. C'est l'espace développeur (Dashboard API).</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4">
+                    <div class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-sm shrink-0 mt-1">2</div>
+                    <div>
+                        <h4 class="font-bold text-slate-800">Ajouter des crédits (Prepaid)</h4>
+                        <p class="text-sm text-slate-600">L'API n'est pas incluse dans l'abonnement ChatGPT Plus (20$). Il faut ajouter une carte bleue et créditer un solde (ex: 10$). Activez l'auto-recharge.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4">
+                    <div class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-sm shrink-0 mt-1">3</div>
+                    <div>
+                        <h4 class="font-bold text-slate-800">Générer la clé (Secret Key)</h4>
+                        <p class="text-sm text-slate-600">Générez une clé qui commence par <code>sk-proj-...</code>. <strong>Copiez-la immédiatement</strong>.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-emerald-100 text-emerald-700 mb-4">Module 4 : Intégration OpenAI</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8 text-slate-900">Quel modèle choisir ? (Coût & Vitesse)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+                <div class="anim d4 glass-strong p-6 border-t-4 border-green-500 shadow-md transform scale-105">
+                    <h3 class="font-bold text-lg text-slate-800 mb-2">GPT-4o-mini</h3>
+                    <div class="text-[10px] font-bold text-white bg-green-500 px-2 py-1 inline-block rounded mb-3">LE CHOIX N°1 (90% des cas)</div>
+                    <ul class="text-xs text-slate-600 space-y-2 mb-4">
+                        <li>• Ultra rapide (< 1s)</li>
+                        <li>• Extrêmement bon marché</li>
+                        <li>• Parfait pour l'extraction, la classification, le routage et JSON.</li>
+                    </ul>
+                </div>
+                <div class="anim d5 glass p-6 border-t-4 border-indigo-500">
+                    <h3 class="font-bold text-lg text-slate-800 mb-2">GPT-4o</h3>
+                    <div class="text-[10px] font-bold text-indigo-700 bg-indigo-100 px-2 py-1 inline-block rounded mb-3">TÂCHES COMPLEXES</div>
+                    <ul class="text-xs text-slate-600 space-y-2 mb-4">
+                        <li>• Lent et beaucoup plus cher.</li>
+                        <li>• Raisonnement profond, Mathématiques.</li>
+                        <li>• À utiliser pour du copywriting ultra-qualitatif.</li>
+                    </ul>
+                </div>
+                <div class="anim d6 glass p-6 border-t-4 border-purple-500">
+                    <h3 class="font-bold text-lg text-slate-800 mb-2">Whisper / TTS</h3>
+                    <div class="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-1 inline-block rounded mb-3">L'AUDIO</div>
+                    <ul class="text-xs text-slate-600 space-y-2 mb-4">
+                        <li>• <strong>Whisper :</strong> Transcrit l'audio en texte.</li>
+                        <li>• <strong>TTS-1 :</strong> Transforme le texte en voix.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full">
+            <div class="anim d1 badge bg-emerald-100 text-emerald-700 mb-4 mx-auto flex w-max">Module 4 : Intégration OpenAI</div>
+            <h2 class="anim d2 text-center text-4xl font-bold mb-10">System Prompt vs User Prompt</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="anim d3 glass p-8">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i data-lucide="settings" class="text-slate-500"></i>
+                        <h3 class="text-xl font-bold text-slate-800">Le System Prompt</h3>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4">C'est la <strong>directive fondamentale</strong>. Il définit le rôle, les règles strictes et le format de sortie de l'IA. Il est codé en dur.</p>
+                    <div class="bg-slate-100 p-4 rounded text-xs font-mono text-slate-700 italic border border-slate-300">
+                        "Tu es un expert en SAV. Ton rôle est d'analyser le ton de l'email client. Réponds uniquement par POSITIF, NEUTRE, ou NEGATIF."
+                    </div>
+                </div>
+                <div class="anim d4 glass-strong p-8 border-t-4 border-emerald-500 shadow-lg">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i data-lucide="user" class="text-emerald-600"></i>
+                        <h3 class="text-xl font-bold text-emerald-800">Le User Prompt</h3>
+                    </div>
+                    <p class="text-sm text-slate-600 mb-4">C'est la <strong>donnée entrante dynamique</strong> à traiter. C'est ici que l'on va "mapper" les variables provenant des modules précédents.</p>
+                    <div class="bg-emerald-50 p-4 rounded text-xs font-mono text-emerald-800 italic border border-emerald-200">
+                        "Voici l'email à analyser :<br>
+                        {{1.text_content}}"
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-emerald-100 text-emerald-700 mb-4">Module 4 : Intégration OpenAI</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8 text-slate-900">La gestion du Contexte (Les Tokens)</h2>
+            <div class="anim d3 glass p-8 text-left max-w-4xl mx-auto shadow-md">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 bg-slate-800 text-white rounded-lg flex items-center justify-center shadow"><i data-lucide="coins"></i></div>
+                    <div>
+                        <h3 class="font-bold text-xl text-slate-800">C'est quoi un Token ?</h3>
+                        <p class="text-sm text-slate-600">L'IA ne lit pas des mots, elle lit des Tokens. (Environ 1 mot = 1,3 tokens en français). C'est l'unité de facturation.</p>
+                    </div>
+                </div>
+                <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl">
+                    <h4 class="font-bold text-amber-800 mb-2 flex items-center gap-2"><i data-lucide="alert-triangle" width="16"></i> L'Amnésie de l'API (Stateless)</h4>
+                    <p class="text-sm text-amber-900 leading-relaxed mb-4">
+                        Contrairement à l'interface ChatGPT qui "se souvient" de la discussion en cours, <strong>l'API est amnésique</strong>. À chaque nouvelle requête HTTP, l'IA repart de zéro.<br>
+                        Si vous voulez faire un Chatbot, vous devez sauvegarder l'historique et le <strong>ré-injecter en entier</strong> dans le prompt à chaque fois.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-red-100 text-red-700 mb-4 animate-pulse">Concept Critique</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8 text-slate-900">Forcer le Format JSON</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                <div class="anim d3 glass p-6 opacity-80">
+                    <div class="text-xs font-bold text-red-500 uppercase mb-2 flex items-center gap-2"><i data-lucide="x-circle" width="16"></i> Ce qu'il ne faut PAS faire</div>
+                    <p class="text-sm text-slate-600 mb-4">Demander un JSON dans le prompt texte sans activer l'option de l'API. L'IA risque d'ajouter du texte conversationnel.</p>
+                    <div class="bg-slate-100 p-3 rounded-lg font-mono text-xs text-slate-500 leading-relaxed">
+                        Voici le JSON :<br>
+                        ```json<br>
+                        { "nom": "Jean" }<br>
+                        ```<br>
+                        J'espère que ça vous aide !
+                    </div>
+                </div>
+                <div class="anim d4 glass-strong p-6 border-2 border-emerald-400 shadow-lg relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-emerald-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">LA METHODE PRO</div>
+                    <div class="text-xs font-bold text-emerald-600 uppercase mb-2 flex items-center gap-2 mt-2"><i data-lucide="check-circle" width="16"></i> JSON Object Mode</div>
+                    <p class="text-sm text-slate-700 mb-4">Activez <strong>Response Format: JSON Object</strong>. Et ajoutez la phrase magique dans le System Prompt :</p>
+                    <div class="bg-slate-900 p-4 rounded-lg font-mono text-[11px] text-green-400 leading-relaxed">
+                        System: "Output ONLY valid JSON matching this structure: { 'nom': string }. No conversational text. No markdown."
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center content-scroll">
+            <div class="anim d1 badge bg-amber-100 text-amber-700 mb-4">Atelier Pratique 1</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8 text-slate-900">Le Trieur SAV Automatique</h2>
+            
+            <div class="anim d3 glass-strong p-8 mb-8 flex items-center justify-between gap-2 shadow-sm">
+                <div class="text-center w-1/5">
+                    <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-2"><i data-lucide="mail"></i></div>
+                    <p class="text-[10px] font-bold">1. Gmail<br>(Watch)</p>
+                </div>
+                <div class="h-1 bg-slate-200 flex-1"></div>
+                <div class="text-center w-1/5">
+                    <div class="w-12 h-12 bg-purple-50 border-2 border-purple-400 rounded-full flex items-center justify-center mx-auto mb-2"><i data-lucide="brain"></i></div>
+                    <p class="text-[10px] font-bold text-purple-700">2. OpenAI<br>(Chat)</p>
+                </div>
+                <div class="h-1 bg-slate-200 flex-1"></div>
+                <div class="text-center w-1/5">
+                    <div class="w-12 h-12 bg-slate-100 border-2 border-slate-300 rounded-full flex items-center justify-center mx-auto mb-2"><i data-lucide="file-json"></i></div>
+                    <p class="text-[10px] font-bold">3. Parse JSON</p>
+                </div>
+                <div class="h-1 bg-slate-200 flex-1"></div>
+                <div class="text-center w-1/5">
+                    <div class="w-12 h-12 bg-indigo-50 border-2 border-indigo-400 rounded-full flex items-center justify-center mx-auto mb-2"><i data-lucide="git-branch"></i></div>
+                    <p class="text-[10px] font-bold text-indigo-700">4. Router</p>
+                </div>
+            </div>
+
+            <div class="anim d4 grid md:grid-cols-2 gap-6 text-left">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h4 class="font-bold text-slate-800 mb-2 border-b pb-2">Configuration OpenAI</h4>
+                    <div class="bg-slate-50 p-3 rounded font-mono text-[10px] text-slate-700">
+                        System: "Tu es un assistant SAV. Renvoie un JSON :<br>
+                        { 'intention': 'REMBOURSEMENT' | 'TECHNIQUE', 'urgence': number }"<br><br>
+                        User: "{{1.text_content}}"
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h4 class="font-bold text-slate-800 mb-2 border-b pb-2">Configuration Routeur</h4>
+                    <ul class="text-xs text-slate-600 space-y-3 mt-2">
+                        <li><span class="font-bold text-red-500">Route 1 (urgence > 3) :</span> Alerte Slack.</li>
+                        <li><span class="font-bold text-blue-500">Route 2 (intention = REMBOURSEMENT) :</span> Créer tâche Notion.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center content-scroll">
+            <div class="anim d1 badge bg-amber-100 text-amber-700 mb-4">Atelier Pratique 2</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8 text-slate-900">Le Chasseur de Leads (Enrichissement)</h2>
+            <div class="anim d4 glass-strong p-8 mb-6 relative border-t-4 border-amber-500">
+                <div class="flex flex-col gap-6">
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-1">1</div>
+                        <div class="text-left">
+                            <h4 class="font-bold text-slate-800">Trigger : Webhook</h4>
+                            <p class="text-xs text-slate-500">On récupère le lead généré : <code>jean@datak.io</code>.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-1">2</div>
+                        <div class="text-left">
+                            <h4 class="font-bold text-blue-800">Module : Text Parser (Natifs Make)</h4>
+                            <p class="text-xs text-slate-500">Regex pour extraire le domaine de l'email : on isole <code>datak.io</code>.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-1">3</div>
+                        <div class="text-left">
+                            <h4 class="font-bold text-emerald-800">Module : HTTP Request (Clearbit API)</h4>
+                            <p class="text-xs text-slate-500">Appel API avec le domaine. L'API renvoie la description de l'entreprise : "Agence experte en IA".</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-1">4</div>
+                        <div class="text-left">
+                            <h4 class="font-bold text-purple-800">Module : OpenAI</h4>
+                            <div class="bg-purple-50 p-2 mt-2 rounded border border-purple-100 font-mono text-[10px] text-purple-900">
+                                User: "Rédige une phrase d'accroche pour de la prospection. Basae-toi sur cette description : {{3.data.description}}"
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center content-scroll">
+            <div class="anim d1 badge bg-amber-100 text-amber-700 mb-4">Atelier Pratique 3</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8 text-slate-900">La Content Factory (Audio vers Post)</h2>
+            <div class="anim d4 glass-strong p-8 text-left shadow-lg border-l-4 border-cyan-500">
+                <div class="flex items-center gap-4 mb-6 pb-4 border-b border-slate-100">
+                    <div class="w-12 h-12 bg-cyan-100 text-cyan-600 rounded-full flex items-center justify-center"><i data-lucide="send"></i></div>
+                    <div>
+                        <h4 class="font-bold text-slate-800">1. Telegram Bot (Watch Updates)</h4>
+                        <p class="text-xs text-slate-500">Filtre : Ne déclencher le flux QUE SI le message contient un fichier audio.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4 mb-6 pb-4 border-b border-slate-100">
+                    <div class="w-12 h-12 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center"><i data-lucide="download"></i></div>
+                    <div>
+                        <h4 class="font-bold text-slate-800">2. Telegram (Download File)</h4>
+                        <p class="text-xs text-slate-500">Récupère le fichier binaire (le .ogg ou .mp3) de la note vocale.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4 mb-6 pb-4 border-b border-slate-100">
+                    <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center"><i data-lucide="mic"></i></div>
+                    <div>
+                        <h4 class="font-bold text-slate-800">3. OpenAI (Create a Transcription)</h4>
+                        <p class="text-xs text-slate-500">Utilise le modèle <strong>Whisper-1</strong>. Résultat : Un texte parfaitement transcrit.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center"><i data-lucide="linkedin"></i></div>
+                    <div>
+                        <h4 class="font-bold text-slate-800">4. OpenAI + LinkedIn (Create a Post)</h4>
+                        <p class="text-xs text-slate-500">Un 2ème module OpenAI met en forme le texte brut de Whisper. Puis on l'envoie sur LinkedIn.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center">
+            <div class="anim d1 badge bg-rose-100 text-rose-700 mb-4">Module 6 : Mise en Production</div>
+            <h2 class="anim d2 text-4xl font-bold mb-8 text-slate-900">Debugging : L'Onglet Historique</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center text-left">
+                <div class="anim d3 glass p-8">
+                    <p class="text-sm text-slate-600 mb-6 leading-relaxed">
+                        Un scénario marche parfaitement en test, mais plante à 3h du matin en production.
+                        Pour comprendre pourquoi, allez dans l'onglet <strong>History</strong>.
+                    </p>
+                    <ul class="text-sm text-slate-700 space-y-4 font-medium">
+                        <li class="flex items-start gap-2"><div class="w-2 h-2 mt-1.5 rounded-full bg-green-500 shrink-0"></div> Inspectez les "Bundles" pour voir la data entrante exacte.</li>
+                        <li class="flex items-start gap-2"><div class="w-2 h-2 mt-1.5 rounded-full bg-red-500 shrink-0"></div> Si erreur 400 (Bad Request) : Le format de votre donnée est mauvais.</li>
+                        <li class="flex items-start gap-2"><div class="w-2 h-2 mt-1.5 rounded-full bg-orange-500 shrink-0"></div> Si erreur 500 : Le serveur en face (OpenAI) a crashé.</li>
+                    </ul>
+                </div>
+                <div class="anim d4 glass-strong p-8 bg-slate-900 shadow-xl border-t-4 border-red-500 transform scale-105">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i data-lucide="alert-triangle" class="text-red-400"></i>
+                        <h3 class="text-lg font-bold text-white">Cas Classique : Timeout</h3>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-4">L'API d'OpenAI peut mettre 40 secondes à répondre. Make, par défaut, coupe la connexion après 40s (Timeout HTTP).</p>
+                    <div class="bg-red-900/30 p-3 rounded font-mono text-[10px] text-red-300 border border-red-800">
+                        Solution : N'utilisez pas GPT-4o classique pour des tâches simples, passez sur mini (réponse en 1s).
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-4xl w-full text-center">
+            <div class="anim d1 badge bg-rose-100 text-rose-700 mb-4">Module 6 : Mise en Production</div>
+            <h2 class="anim d2 text-4xl font-bold mb-10 text-slate-900">FinOps : Optimisation des coûts API</h2>
+            
+            <div class="anim d3 glass p-0 overflow-hidden w-full mx-auto shadow-sm mb-6">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs border-b border-slate-200">
+                        <tr><th class="p-4">Poste de dépense</th><th class="p-4 text-right">Coût estimé (Tarif OpenAI)</th></tr>
+                    </thead>
+                    <tbody class="text-slate-700">
+                        <tr class="border-b border-slate-100">
+                            <td class="p-4 font-bold">Abonnement Make (Core)</td><td class="p-4 text-right">10.59$ / mois (10 000 tâches)</td>
+                        </tr>
+                        <tr class="border-b border-slate-100 bg-green-50/50">
+                            <td class="p-4 font-bold">GPT-4o-mini (Input/Output)</td><td class="p-4 text-right text-emerald-600 font-bold">0.15$ pour 1 000 000 de tokens (Très bas)</td>
+                        </tr>
+                        <tr class="border-b border-slate-100 bg-indigo-50/50">
+                            <td class="p-4 font-bold">GPT-4o (Input/Output)</td><td class="p-4 text-right text-indigo-600 font-bold">~5.00$ pour 1 000 000 de tokens</td>
+                        </tr>
+                        <tr class="border-b border-slate-100">
+                            <td class="p-4 font-bold">Whisper (Audio)</td><td class="p-4 text-right">0.006$ par minute d'audio</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="anim d4 grid md:grid-cols-2 gap-4">
+                <div class="bg-red-50 p-4 rounded-xl border border-red-100 text-left">
+                    <h4 class="font-bold text-red-800 text-sm mb-1"><i data-lucide="infinity" class="inline w-4 h-4 mr-1"></i> La Boucle Infinie</h4>
+                    <p class="text-xs text-red-700">Un webhook qui se déclenche lui-même en boucle va vider votre budget API en 1 heure.</p>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-left">
+                    <h4 class="font-bold text-blue-800 text-sm mb-1"><i data-lucide="scissors" class="inline w-4 h-4 mr-1"></i> Le sur-prompting</h4>
+                    <p class="text-xs text-blue-700">Ne passez pas l'historique complet des 500 emails d'un client dans le prompt. Tronquez les données avant avec <code>substring()</code>.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-5xl w-full text-center content-scroll pb-16">
+            <div class="anim d1 badge bg-indigo-100 text-indigo-700 mb-4 mt-8">Validation des acquis</div>
+            <h2 class="anim d2 text-4xl font-bold mb-4 text-slate-900">Le Grand Quiz Interactif</h2>
+            <p class="anim d3 text-slate-600 mb-8 max-w-2xl mx-auto">Cochez la bonne réponse pour chaque question, puis validez pour découvrir votre score de futur Architecte IA.</p>
+            
+            <form id="quiz-form" onsubmit="event.preventDefault(); checkQuiz();" class="anim d4 grid grid-cols-1 gap-4 text-left max-w-3xl mx-auto">
+                
+                <div id="qcard-1" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-indigo-500 mr-2">1.</span> Dans l'analogie du restaurant, qui représente l'API ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q1" value="A" class="quiz-radio"> Le Client (qui passe la commande)</label>
+                        <label class="quiz-option"><input type="radio" name="q1" value="B" class="quiz-radio"> Le Serveur (qui transporte la commande)</label>
+                        <label class="quiz-option"><input type="radio" name="q1" value="C" class="quiz-radio"> La Cuisine (qui prépare le plat)</label>
+                    </div>
+                </div>
+
+                <div id="qcard-2" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-indigo-500 mr-2">2.</span> Quel verbe HTTP est utilisé pour envoyer de la donnée (ex: créer un prompt OpenAI) ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q2" value="A" class="quiz-radio"> GET</label>
+                        <label class="quiz-option"><input type="radio" name="q2" value="B" class="quiz-radio"> POST</label>
+                        <label class="quiz-option"><input type="radio" name="q2" value="C" class="quiz-radio"> DELETE</label>
+                    </div>
+                </div>
+
+                <div id="qcard-3" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-indigo-500 mr-2">3.</span> Quel format de texte structuré est qualifié de "langage des machines" ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q3" value="A" class="quiz-radio"> HTML</label>
+                        <label class="quiz-option"><input type="radio" name="q3" value="B" class="quiz-radio"> JSON</label>
+                        <label class="quiz-option"><input type="radio" name="q3" value="C" class="quiz-radio"> Markdown</label>
+                    </div>
+                </div>
+
+                <div id="qcard-4" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-indigo-500 mr-2">4.</span> Pourquoi préférer un Webhook au Polling ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q4" value="A" class="quiz-radio"> Il est déclenché en temps réel par un événement externe (Push).</label>
+                        <label class="quiz-option"><input type="radio" name="q4" value="B" class="quiz-radio"> Il interroge la base toutes les 5 minutes automatiquement.</label>
+                        <label class="quiz-option"><input type="radio" name="q4" value="C" class="quiz-radio"> Il est plus sécurisé car il ne demande pas de mot de passe.</label>
+                    </div>
+                </div>
+
+                <div id="qcard-5" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-indigo-500 mr-2">5.</span> Quel est le principal avantage de n8n par rapport à Make ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q5" value="A" class="quiz-radio"> Le fait de pouvoir l'auto-héberger (Self-Hosting) et d'écrire du Code.</label>
+                        <label class="quiz-option"><input type="radio" name="q5" value="B" class="quiz-radio"> Son interface visuelle est beaucoup plus simple pour les débutants.</label>
+                        <label class="quiz-option"><input type="radio" name="q5" value="C" class="quiz-radio"> Il est directement intégré à l'écosystème Google Workspace.</label>
+                    </div>
+                </div>
+
+                <div id="qcard-6" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-indigo-500 mr-2">6.</span> Quelles sont les 3 familles de nœuds sur Make ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q6" value="A" class="quiz-radio"> Triggers, Searches, Actions.</label>
+                        <label class="quiz-option"><input type="radio" name="q6" value="B" class="quiz-radio"> Inputs, Outputs, Errors.</label>
+                        <label class="quiz-option"><input type="radio" name="q6" value="C" class="quiz-radio"> Getters, Setters, Pointers.</label>
+                    </div>
+                </div>
+
+                <div id="qcard-7" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-indigo-500 mr-2">7.</span> Qu'est-ce que le "Mapping" dans Make ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q7" value="A" class="quiz-radio"> Insérer une variable d'un module précédent dans un champ d'un module suivant.</label>
+                        <label class="quiz-option"><input type="radio" name="q7" value="B" class="quiz-radio"> Dessiner l'architecture du workflow sur un tableau blanc.</label>
+                        <label class="quiz-option"><input type="radio" name="q7" value="C" class="quiz-radio"> Localiser l'adresse IP de l'API avec laquelle on communique.</label>
+                    </div>
+                </div>
+
+                <div id="qcard-8" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-indigo-500 mr-2">8.</span> Que représente le type de donnée "Array" ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q8" value="A" class="quiz-radio"> Un nombre à virgule (Float).</label>
+                        <label class="quiz-option"><input type="radio" name="q8" value="B" class="quiz-radio"> Une liste ou collection contenant plusieurs éléments.</label>
+                        <label class="quiz-option"><input type="radio" name="q8" value="C" class="quiz-radio"> Une chaîne de caractères masquée (Mot de passe).</label>
+                    </div>
+                </div>
+
+                <div id="qcard-9" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-indigo-500 mr-2">9.</span> À quoi sert un Routeur ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q9" value="A" class="quiz-radio"> À stocker des données temporaires dans le cloud.</label>
+                        <label class="quiz-option"><input type="radio" name="q9" value="B" class="quiz-radio"> À diviser le flux en plusieurs chemins conditionnels (If/Else).</label>
+                        <label class="quiz-option"><input type="radio" name="q9" value="C" class="quiz-radio"> À se connecter aux applications qui n'ont pas d'intégration native.</label>
+                    </div>
+                </div>
+
+                <div id="qcard-10" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-indigo-500 mr-2">10.</span> Quelle est la fonction d'un Itérateur ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q10" value="A" class="quiz-radio"> Prendre une liste (Array) et l'éclater en plusieurs exécutions distinctes.</label>
+                        <label class="quiz-option"><input type="radio" name="q10" value="B" class="quiz-radio"> Regrouper plusieurs exécutions pour en faire une seule liste.</label>
+                        <label class="quiz-option"><input type="radio" name="q10" value="C" class="quiz-radio"> Créer une boucle infinie pour scrapper une page web.</label>
+                    </div>
+                </div>
+
+                <div id="qcard-11" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-indigo-500 mr-2">11.</span> En cas d'erreur de l'API OpenAI, quel "Error Handler" met l'exécution en pause et réessaie plus tard ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q11" value="A" class="quiz-radio"> Ignore</label>
+                        <label class="quiz-option"><input type="radio" name="q11" value="B" class="quiz-radio"> Resume</label>
+                        <label class="quiz-option"><input type="radio" name="q11" value="C" class="quiz-radio"> Break</label>
+                    </div>
+                </div>
+
+                <div id="qcard-12" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-indigo-500 mr-2">12.</span> Lequel de ces prompts définit le comportement de fond de l'IA de manière codée en dur ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q12" value="A" class="quiz-radio"> Le System Prompt</label>
+                        <label class="quiz-option"><input type="radio" name="q12" value="B" class="quiz-radio"> Le User Prompt</label>
+                        <label class="quiz-option"><input type="radio" name="q12" value="C" class="quiz-radio"> Le Developer Prompt</label>
+                    </div>
+                </div>
+
+                <div id="qcard-13" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-indigo-500 mr-2">13.</span> L'API OpenAI est "Stateless". Qu'est-ce que cela signifie ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q13" value="A" class="quiz-radio"> Elle n'a aucune mémoire de la requête précédente, elle est amnésique.</label>
+                        <label class="quiz-option"><input type="radio" name="q13" value="B" class="quiz-radio"> Elle ne fonctionne que dans un état ou pays spécifique à la fois.</label>
+                        <label class="quiz-option"><input type="radio" name="q13" value="C" class="quiz-radio"> Elle sauvegarde indéfiniment vos historiques pour entraîner ses modèles.</label>
+                    </div>
+                </div>
+
+                <div id="qcard-14" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-indigo-500 mr-2">14.</span> Pourquoi est-il vital d'activer le mode "JSON Object" sur l'API OpenAI ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q14" value="A" class="quiz-radio"> Pour que l'API coûte moins cher en limitant les caractères.</label>
+                        <label class="quiz-option"><input type="radio" name="q14" value="B" class="quiz-radio"> Pour empêcher l'IA d'ajouter du texte conversationnel qui ferait crasher Make.</label>
+                        <label class="quiz-option"><input type="radio" name="q14" value="C" class="quiz-radio"> Pour permettre l'utilisation du modèle GPT-4o-mini au lieu du modèle standard.</label>
+                    </div>
+                </div>
+
+                <div id="qcard-15" class="glass p-5 transition-colors duration-300 border-2 border-transparent">
+                    <p class="font-bold text-slate-800 mb-3"><span class="text-indigo-500 mr-2">15.</span> Qu'est-ce qu'un "Token" dans l'univers de l'IA ?</p>
+                    <div class="space-y-2 text-sm text-slate-700">
+                        <label class="quiz-option"><input type="radio" name="q15" value="A" class="quiz-radio"> Le mot de passe (Secret Key) qui permet d'appeler l'API de manière sécurisée.</label>
+                        <label class="quiz-option"><input type="radio" name="q15" value="B" class="quiz-radio"> L'unité de découpage du texte lue par l'IA, servant d'unité de facturation.</label>
+                        <label class="quiz-option"><input type="radio" name="q15" value="C" class="quiz-radio"> Un module spécifique de Make permettant de se connecter à ChatGPT.</label>
+                    </div>
+                </div>
+
+                <div class="mt-8 mb-12 flex flex-col items-center">
+                    <button type="submit" class="bg-indigo-600 text-white px-10 py-4 rounded-full font-bold shadow-xl hover:bg-indigo-700 transition transform hover:scale-105">
+                        Valider mes réponses
+                    </button>
+                    
+                    <div id="quiz-result" class="hidden mt-6 px-8 py-4 rounded-2xl text-2xl font-black text-center shadow-lg w-full max-w-md border-2 border-transparent transition-all duration-500">
+                        Score final : 0 / 15
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section class="slide">
+        <div class="max-w-4xl text-center">
+            <div class="anim d1 p-6 bg-white/60 rounded-3xl mb-8 border-none backdrop-blur inline-block shadow-sm">
+                <i data-lucide="rocket" class="text-blue-600" width="48" height="48"></i>
+            </div>
+            <h2 class="anim d2 text-5xl font-black mb-6 text-slate-900">À vous de jouer.</h2>
+            <p class="anim d3 text-xl text-slate-600 font-medium mb-10 max-w-2xl mx-auto leading-relaxed">
+                Ne commencez pas par automatiser un processus géant. Prenez une micro-tâche que vous détestez faire, ouvrez Make.com, et construisez votre premier workflow aujourd'hui.
+            </p>
+            <div class="anim d4 flex gap-4 justify-center">
+                <button class="bg-slate-900 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-blue-600 transition" onclick="goToSlide(0)">
+                    Reprendre depuis le début
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <script>
+    (function() {
+        'use strict';
+        lucide.createIcons();
+
+        const slides = document.querySelectorAll('.slide');
+        const counter = document.getElementById('slideCounter');
+        const progress = document.getElementById('progress');
+        let current = 0;
+        const total = slides.length;
+
+        function updateSlide() {
+            slides.forEach((slide, index) => { slide.classList.toggle('active', index === current); });
+            if(counter) counter.innerText = `${String(current + 1).padStart(2, '0')} / ${total}`;
+            if(progress) progress.style.width = `${((current + 1) / total) * 100}%`;
+        }
+
+        window.nextSlide = () => { if (current < total - 1) { current++; updateSlide(); } };
+        window.prevSlide = () => { if (current > 0) { current--; updateSlide(); } };
+        window.goToSlide = (n) => { current = n; updateSlide(); };
+
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'ArrowRight' || e.key === ' ') { 
+                // Don't change slide if we are interacting with radio buttons or the form
+                if(document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "BUTTON") {
+                    e.preventDefault(); 
+                    nextSlide(); 
+                }
+            }
+            if(e.key === 'ArrowLeft') { 
+                if(document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "BUTTON") {
+                    e.preventDefault(); 
+                    prevSlide(); 
+                }
+            }
+        });
+
+        let touchStartX = 0;
+        document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+        document.addEventListener('touchend', e => {
+            if(touchStartX - e.changedTouches[0].screenX > 50) nextSlide();
+            if(e.changedTouches[0].screenX - touchStartX > 50) prevSlide();
+        }, {passive: true});
+
+        // --- QUIZ LOGIC ---
+        window.checkQuiz = () => {
+            const answers = {
+                q1: 'B', q2: 'B', q3: 'B', q4: 'A', q5: 'A',
+                q6: 'A', q7: 'A', q8: 'B', q9: 'B', q10: 'A',
+                q11: 'C', q12: 'A', q13: 'A', q14: 'B', q15: 'B'
+            };
+            let score = 0;
+            
+            for (let i = 1; i <= 15; i++) {
+                const qName = 'q' + i;
+                const selected = document.querySelector(`input[name="${qName}"]:checked`);
+                const qCard = document.getElementById(`qcard-${i}`);
+                
+                // Reset styling
+                qCard.classList.remove('border-emerald-500', 'border-red-500', 'bg-emerald-50', 'bg-red-50', 'border-transparent');
+                
+                if (selected) {
+                    if (selected.value === answers[qName]) {
+                        score++;
+                        qCard.classList.add('border-emerald-500', 'bg-emerald-50');
+                    } else {
+                        qCard.classList.add('border-red-500', 'bg-red-50');
+                    }
+                } else {
+                    // Highlight unanswered questions
+                    qCard.classList.add('border-amber-400');
+                }
+            }
+            
+            const resultBox = document.getElementById('quiz-result');
+            resultBox.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-800', 'border-emerald-300', 'bg-amber-100', 'text-amber-800', 'border-amber-300', 'bg-red-100', 'text-red-800', 'border-red-300');
+            
+            resultBox.innerHTML = `Score final : ${score} / 15`;
+            
+            if (score === 15) {
+                resultBox.classList.add('bg-emerald-100', 'text-emerald-800', 'border-emerald-300');
+                resultBox.innerHTML += `<br><span class="text-sm font-medium">Parfait ! Vous êtes prêt pour la prod.</span>`;
+            } else if (score >= 10) {
+                resultBox.classList.add('bg-amber-100', 'text-amber-800', 'border-amber-300');
+                resultBox.innerHTML += `<br><span class="text-sm font-medium">Très bon niveau, quelques révisions et c'est bon !</span>`;
+            } else {
+                resultBox.classList.add('bg-red-100', 'text-red-800', 'border-red-300');
+                resultBox.innerHTML += `<br><span class="text-sm font-medium">N'hésitez pas à repasser la Masterclass ;)</span>`;
+            }
+            
+            // Scroll to bottom of the quiz smoothly
+            resultBox.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        };
+
+        updateSlide();
+    })();
+    </script>
+</body>
+</html>
